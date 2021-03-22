@@ -7,9 +7,41 @@ from datetime import datetime
 import datetime
 import sqlite3
 
+
 DATABASE_LOCATION = "sqlite:///my_played_tracks.sqlite"
 USER_ID = "zchrysaylor"
 TOKEN = "BQBUK-WVG6aUVsNtZuSn45kpLUTY4S-OT1hV1UqhFoIQIW2rdIWpTVRELkDkBg26JGtTsZQbCTYxM5XlsIlRwDozaeU4ivmiS2K2wzLm4YXFQCPxorhu0aoa7b130nQWzJCef6n3ct_hgOvnoY458g"
+
+# Note: Token expires every 15 minutes.
+# Generate new token here: https://developer.spotify.com/console/get-recently-played/
+
+def check_if_valid_data(df: pd.DataFrame) -> bool:
+    # Check if DataFrame is empty
+    if df.empty:
+        print("No songs downloaded. Finishing execution.")
+        return False
+    
+    # Primary Key check
+    if pd.Series(df['played_at']).is_unique:
+        pass
+    else:
+        raise Exception("Primary Key check is violated.")
+    
+    # Check for null values
+    if df.isnull().values.any():
+        raise Exception("Null value found.")
+    
+    # Check that all timestamps are from last 24 hours
+    yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+    yesterday = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    timestamps = df["timestamp"].tolist()
+    for timestamp in timestamps:
+        datetime.datetime.strptime(timestamp, "%Y-%m-%d") != yesterday:
+        raise Exception("At least 1 returned song was not played in the last 24 hours.")
+    
+    return True
+
 
 if __name__ == "__main__":
 
@@ -55,3 +87,8 @@ if __name__ == "__main__":
     )
 
     print(song_df)
+
+
+    # Validate
+    if(check_if_valid_data(song_df)):
+        print("Data valid, proceeding to Load stage...")
